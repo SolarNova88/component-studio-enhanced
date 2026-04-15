@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import ZoomParallaxDemo, { type BackgroundVariant } from '@/components/ZoomParallaxDemo';
+import ZoomParallaxDemo, { type BackgroundVariant, type HeroTextAlign } from '@/components/ZoomParallaxDemo';
 import { Layout, Folder, File, ChevronDown, ChevronRight, Square, Box } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
@@ -13,6 +13,13 @@ const SETTINGS_STORAGE_KEY = 'zoom-parallax-demo-settings-v1';
 interface PersistedSettings {
   scrollLengthMultiplier?: number;
   introHeightVh?: number;
+  heroFontFamily?: string;
+  heroFontSizePx?: number;
+  heroTextColor?: string;
+  heroTextAlign?: HeroTextAlign;
+  heroOffsetXPx?: number;
+  heroOffsetYPx?: number;
+  heroMaxWidthPercent?: number;
   imageBorderRadiusPx?: number;
   backgroundVariant?: BackgroundVariant;
 }
@@ -64,6 +71,13 @@ function getBackgroundSnippet(variant: BackgroundVariant) {
 export default function App() {
   const [scrollLengthMultiplier, setScrollLengthMultiplier] = useState(3);
   const [introHeightVh, setIntroHeightVh] = useState(50);
+  const [heroFontFamily, setHeroFontFamily] = useState('inherit');
+  const [heroFontSizePx, setHeroFontSizePx] = useState(48);
+  const [heroTextColor, setHeroTextColor] = useState('#ffffff');
+  const [heroTextAlign, setHeroTextAlign] = useState<HeroTextAlign>('center');
+  const [heroOffsetXPx, setHeroOffsetXPx] = useState(0);
+  const [heroOffsetYPx, setHeroOffsetYPx] = useState(0);
+  const [heroMaxWidthPercent, setHeroMaxWidthPercent] = useState(100);
   const [imageBorderRadiusPx, setImageBorderRadiusPx] = useState(8);
   const [backgroundVariant, setBackgroundVariant] = useState<BackgroundVariant>('solid-dark');
   const [hasHydratedSettings, setHasHydratedSettings] = useState(false);
@@ -79,6 +93,30 @@ export default function App() {
       }
       if (typeof parsed.introHeightVh === 'number') {
         setIntroHeightVh(parsed.introHeightVh);
+      }
+      if (typeof parsed.heroFontFamily === 'string') {
+        setHeroFontFamily(parsed.heroFontFamily);
+      }
+      if (typeof parsed.heroFontSizePx === 'number') {
+        setHeroFontSizePx(parsed.heroFontSizePx);
+      }
+      if (typeof parsed.heroTextColor === 'string') {
+        setHeroTextColor(parsed.heroTextColor);
+      }
+      if (
+        parsed.heroTextAlign &&
+        ['left', 'center', 'right'].includes(parsed.heroTextAlign)
+      ) {
+        setHeroTextAlign(parsed.heroTextAlign);
+      }
+      if (typeof parsed.heroOffsetXPx === 'number') {
+        setHeroOffsetXPx(parsed.heroOffsetXPx);
+      }
+      if (typeof parsed.heroOffsetYPx === 'number') {
+        setHeroOffsetYPx(parsed.heroOffsetYPx);
+      }
+      if (typeof parsed.heroMaxWidthPercent === 'number') {
+        setHeroMaxWidthPercent(parsed.heroMaxWidthPercent);
       }
       if (typeof parsed.imageBorderRadiusPx === 'number') {
         setImageBorderRadiusPx(parsed.imageBorderRadiusPx);
@@ -101,16 +139,43 @@ export default function App() {
     const settingsToPersist: PersistedSettings = {
       scrollLengthMultiplier,
       introHeightVh,
+      heroFontFamily,
+      heroFontSizePx,
+      heroTextColor,
+      heroTextAlign,
+      heroOffsetXPx,
+      heroOffsetYPx,
+      heroMaxWidthPercent,
       imageBorderRadiusPx,
       backgroundVariant,
     };
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsToPersist));
-  }, [hasHydratedSettings, scrollLengthMultiplier, introHeightVh, imageBorderRadiusPx, backgroundVariant]);
+  }, [
+    hasHydratedSettings,
+    scrollLengthMultiplier,
+    introHeightVh,
+    heroFontFamily,
+    heroFontSizePx,
+    heroTextColor,
+    heroTextAlign,
+    heroOffsetXPx,
+    heroOffsetYPx,
+    heroMaxWidthPercent,
+    imageBorderRadiusPx,
+    backgroundVariant,
+  ]);
 
   const handleSaveAndRefresh = () => {
     const settingsToPersist: PersistedSettings = {
       scrollLengthMultiplier,
       introHeightVh,
+      heroFontFamily,
+      heroFontSizePx,
+      heroTextColor,
+      heroTextAlign,
+      heroOffsetXPx,
+      heroOffsetYPx,
+      heroMaxWidthPercent,
       imageBorderRadiusPx,
       backgroundVariant,
     };
@@ -121,6 +186,10 @@ export default function App() {
   const handleCopy = async () => {
     const calibratedScrollLength = Number(scrollLengthMultiplier.toFixed(2));
     const calibratedIntroHeight = Math.round(introHeightVh);
+    const calibratedHeroFontSize = Math.round(heroFontSizePx);
+    const calibratedHeroOffsetX = Math.round(heroOffsetXPx);
+    const calibratedHeroOffsetY = Math.round(heroOffsetYPx);
+    const calibratedHeroMaxWidth = Math.round(heroMaxWidthPercent);
     const calibratedImageRadius = Math.round(imageBorderRadiusPx);
     const backgroundSnippet = getBackgroundSnippet(backgroundVariant);
     const integrationBundle = `# Zoom Parallax Integration Bundle
@@ -223,6 +292,24 @@ export default function Page() {
   const backgroundClassName = ${backgroundSnippet.classNameLiteral};
   const backgroundStyle = ${backgroundSnippet.styleLiteral};
   const backgroundLayer = ${backgroundSnippet.layerLiteral};
+  const heroTextStyle = {
+    fontFamily: ${JSON.stringify(heroFontFamily)},
+    fontSize: '${calibratedHeroFontSize}px',
+    color: ${JSON.stringify(heroTextColor)},
+    textAlign: ${JSON.stringify(heroTextAlign)} as const,
+    maxWidth: '${calibratedHeroMaxWidth}%',
+  };
+  const heroTextContainerStyle = {
+    position: 'absolute' as const,
+    left: '50%',
+    top: '50%',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
+    paddingLeft: '1.5rem',
+    paddingRight: '1.5rem',
+    transform: 'translate(calc(-50% + ${calibratedHeroOffsetX}px), calc(-50% + ${calibratedHeroOffsetY}px))',
+  };
   const images = [
     { src: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80', alt: 'Architecture' },
     { src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80', alt: 'Cityscape' },
@@ -231,8 +318,15 @@ export default function Page() {
 
   return (
     <div ref={scrollRef} className="h-screen overflow-y-auto">
-      <div className="relative flex items-center justify-center" style={{ height: '${calibratedIntroHeight}vh' }}>
-        <h1 className="text-4xl font-bold">Scroll Down for Zoom Parallax</h1>
+      <div className="relative overflow-hidden" style={{ height: '${calibratedIntroHeight}vh' }}>
+        <div className="relative z-10" style={heroTextContainerStyle}>
+          <h1
+            className="mx-auto font-bold leading-tight"
+            style={heroTextStyle}
+          >
+            Scroll Down for Zoom Parallax
+          </h1>
+        </div>
       </div>
       <ZoomParallax
         images={images}
@@ -344,12 +438,26 @@ export default function Page() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ZoomParallaxDemo
             scrollLengthMultiplier={scrollLengthMultiplier}
             onScrollLengthMultiplierChange={setScrollLengthMultiplier}
             introHeightVh={introHeightVh}
             onIntroHeightVhChange={setIntroHeightVh}
+            heroFontFamily={heroFontFamily}
+            onHeroFontFamilyChange={setHeroFontFamily}
+            heroFontSizePx={heroFontSizePx}
+            onHeroFontSizePxChange={setHeroFontSizePx}
+            heroTextColor={heroTextColor}
+            onHeroTextColorChange={setHeroTextColor}
+            heroTextAlign={heroTextAlign}
+            onHeroTextAlignChange={setHeroTextAlign}
+            heroOffsetXPx={heroOffsetXPx}
+            onHeroOffsetXPxChange={setHeroOffsetXPx}
+            heroOffsetYPx={heroOffsetYPx}
+            onHeroOffsetYPxChange={setHeroOffsetYPx}
+            heroMaxWidthPercent={heroMaxWidthPercent}
+            onHeroMaxWidthPercentChange={setHeroMaxWidthPercent}
             imageBorderRadiusPx={imageBorderRadiusPx}
             onImageBorderRadiusPxChange={setImageBorderRadiusPx}
             backgroundVariant={backgroundVariant}

@@ -12,11 +12,27 @@ export type BackgroundVariant =
 	| 'image-forest'
 	| 'blob-animated';
 
+export type HeroTextAlign = 'left' | 'center' | 'right';
+
 interface ZoomParallaxDemoProps {
 	scrollLengthMultiplier: number;
 	onScrollLengthMultiplierChange: (value: number) => void;
 	introHeightVh: number;
 	onIntroHeightVhChange: (value: number) => void;
+	heroFontFamily: string;
+	onHeroFontFamilyChange: (value: string) => void;
+	heroFontSizePx: number;
+	onHeroFontSizePxChange: (value: number) => void;
+	heroTextColor: string;
+	onHeroTextColorChange: (value: string) => void;
+	heroTextAlign: HeroTextAlign;
+	onHeroTextAlignChange: (value: HeroTextAlign) => void;
+	heroOffsetXPx: number;
+	onHeroOffsetXPxChange: (value: number) => void;
+	heroOffsetYPx: number;
+	onHeroOffsetYPxChange: (value: number) => void;
+	heroMaxWidthPercent: number;
+	onHeroMaxWidthPercentChange: (value: number) => void;
 	imageBorderRadiusPx: number;
 	onImageBorderRadiusPxChange: (value: number) => void;
 	backgroundVariant: BackgroundVariant;
@@ -28,6 +44,20 @@ export default function ZoomParallaxDemo({
 	onScrollLengthMultiplierChange,
 	introHeightVh,
 	onIntroHeightVhChange,
+	heroFontFamily,
+	onHeroFontFamilyChange,
+	heroFontSizePx,
+	onHeroFontSizePxChange,
+	heroTextColor,
+	onHeroTextColorChange,
+	heroTextAlign,
+	onHeroTextAlignChange,
+	heroOffsetXPx,
+	onHeroOffsetXPxChange,
+	heroOffsetYPx,
+	onHeroOffsetYPxChange,
+	heroMaxWidthPercent,
+	onHeroMaxWidthPercentChange,
 	imageBorderRadiusPx,
 	onImageBorderRadiusPxChange,
 	backgroundVariant,
@@ -103,6 +133,25 @@ export default function ZoomParallaxDemo({
 	const introHeightStyle = isFullscreen
 		? { height: `${introHeightVh}vh` }
 		: { height: `${(introHeightVh / 100) * Math.max(1, previewViewportHeight)}px` };
+	const introHeadingStyle: React.CSSProperties = {
+		fontFamily: heroFontFamily || undefined,
+		fontSize: `${heroFontSizePx}px`,
+		color: heroTextColor,
+		textAlign: heroTextAlign,
+		maxWidth: `${heroMaxWidthPercent}%`,
+	};
+	/** Offsets apply from true center of intro section (mini + fullscreen). */
+	const introHeroAnchorStyle: React.CSSProperties = {
+		position: 'absolute',
+		left: '50%',
+		top: '50%',
+		width: '100%',
+		maxWidth: '100%',
+		boxSizing: 'border-box',
+		paddingLeft: '1.5rem',
+		paddingRight: '1.5rem',
+		transform: `translate(calc(-50% + ${heroOffsetXPx}px), calc(-50% + ${heroOffsetYPx}px))`,
+	};
 
 	const backgroundConfig = React.useMemo(() => {
 		switch (backgroundVariant) {
@@ -201,13 +250,13 @@ export default function ZoomParallaxDemo({
 	];
 
 	return (
-		<div className="grid min-w-0 grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:p-8">
+		<div className="grid h-full min-h-0 min-w-0 grid-cols-1 gap-6 overflow-hidden p-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:p-8">
 			{/* Parallax Canvas */}
 			<div
 				className={cn(
 					'relative w-full max-w-full rounded-xl border border-border bg-black shadow-2xl transition-all lg:mx-auto',
 					isFullscreen
-						? 'fixed inset-5 z-50 aspect-auto rounded-2xl border-white/20'
+						? 'fixed top-0 left-0 z-50 h-screen w-screen aspect-auto rounded-none border-white/20'
 						: 'aspect-video max-h-[calc(100vh-13rem)]',
 				)}
 			>
@@ -216,7 +265,7 @@ export default function ZoomParallaxDemo({
 					isFullscreen ? 'rounded-2xl' : 'rounded-xl',
 				)}>
 					<main className="min-h-screen w-full bg-black text-white">
-						<div className="relative flex items-center justify-center px-6" style={introHeightStyle}>
+						<div className="relative overflow-hidden" style={introHeightStyle}>
 							<div
 								aria-hidden="true"
 								className={cn(
@@ -225,9 +274,19 @@ export default function ZoomParallaxDemo({
 									'blur-[30px]',
 								)}
 							/>
-							<h1 className="relative z-10 text-center text-2xl font-bold md:text-4xl">
-								Scroll Down for Zoom Parallax
-							</h1>
+							<div className="relative z-10" style={introHeroAnchorStyle}>
+								<h1
+									className={cn(
+										'font-bold leading-tight',
+										heroTextAlign === 'left' ? 'ml-0 mr-auto' : '',
+										heroTextAlign === 'center' ? 'mx-auto' : '',
+										heroTextAlign === 'right' ? 'ml-auto mr-0' : '',
+									)}
+									style={introHeadingStyle}
+								>
+									Scroll Down for Zoom Parallax
+								</h1>
+							</div>
 						</div>
 						<ZoomParallax
 							images={images}
@@ -257,7 +316,8 @@ export default function ZoomParallaxDemo({
 			</div>
 
 			{/* Integration Panel */}
-			<div className="min-w-0 flex flex-col gap-5">
+			<div className="min-w-0 min-h-0 overflow-y-auto pr-1">
+				<div className="flex flex-col gap-5 pb-6">
 				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
 					<h3 className="mb-3 text-sm font-semibold text-primary">Setup Commands</h3>
 					<div className="rounded-md bg-black p-3 font-mono text-xs leading-relaxed text-zinc-400">
@@ -316,6 +376,112 @@ export default function ZoomParallaxDemo({
 					<p className="mt-2 text-xs text-muted-foreground">
 						Larger values delay where parallax starts.
 					</p>
+				</div>
+
+				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
+					<h3 className="mb-3 text-sm font-semibold text-primary">Hero Text Styling</h3>
+					<div className="mb-3">
+						<label className="mb-1 block text-xs text-muted-foreground">Font Family</label>
+						<select
+							value={heroFontFamily}
+							onChange={(event) => onHeroFontFamilyChange(event.target.value)}
+							className="w-full rounded-md border border-border bg-black/40 px-3 py-2 text-sm text-foreground outline-none ring-primary/50 transition focus:ring-2"
+						>
+							<option value="inherit">Default (Current)</option>
+							<option value="'Geist Variable', sans-serif">Geist</option>
+							<option value="system-ui, sans-serif">System Sans</option>
+							<option value="Georgia, serif">Serif</option>
+							<option value="'Courier New', monospace">Monospace</option>
+						</select>
+					</div>
+					<div className="mb-3">
+						<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+							<span>Font Size</span>
+							<span className="font-mono">{Math.round(heroFontSizePx)}px</span>
+						</div>
+						<input
+							type="range"
+							min={18}
+							max={96}
+							step={1}
+							value={heroFontSizePx}
+							onChange={(event) => onHeroFontSizePxChange(Number(event.target.value))}
+							className="w-full accent-primary"
+						/>
+					</div>
+					<div className="mb-3">
+						<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+							<span>Text Color</span>
+							<span className="font-mono uppercase">{heroTextColor}</span>
+						</div>
+						<input
+							type="color"
+							value={heroTextColor}
+							onChange={(event) => onHeroTextColorChange(event.target.value)}
+							className="h-10 w-full rounded border border-border bg-transparent"
+						/>
+					</div>
+					<div>
+						<label className="mb-1 block text-xs text-muted-foreground">Text Align</label>
+						<select
+							value={heroTextAlign}
+							onChange={(event) => onHeroTextAlignChange(event.target.value as HeroTextAlign)}
+							className="w-full rounded-md border border-border bg-black/40 px-3 py-2 text-sm text-foreground outline-none ring-primary/50 transition focus:ring-2"
+						>
+							<option value="left">Left</option>
+							<option value="center">Center</option>
+							<option value="right">Right</option>
+						</select>
+					</div>
+				</div>
+
+				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
+					<h3 className="mb-3 text-sm font-semibold text-primary">Hero Text Position</h3>
+					<div className="mb-3">
+						<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+							<span>Horizontal Offset</span>
+							<span className="font-mono">{Math.round(heroOffsetXPx)}px</span>
+						</div>
+						<input
+							type="range"
+							min={-240}
+							max={240}
+							step={1}
+							value={heroOffsetXPx}
+							onChange={(event) => onHeroOffsetXPxChange(Number(event.target.value))}
+							className="w-full accent-primary"
+						/>
+					</div>
+					<div className="mb-3">
+						<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+							<span>Vertical Offset</span>
+							<span className="font-mono">{Math.round(heroOffsetYPx)}px</span>
+						</div>
+						<input
+							type="range"
+							min={-200}
+							max={200}
+							step={1}
+							value={heroOffsetYPx}
+							onChange={(event) => onHeroOffsetYPxChange(Number(event.target.value))}
+							className="w-full accent-primary"
+						/>
+					</div>
+					<div>
+						<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+							<span>Max Width</span>
+							<span className="font-mono">{Math.round(heroMaxWidthPercent)}%</span>
+						</div>
+						<input
+							type="range"
+							min={35}
+							max={100}
+							step={1}
+							value={heroMaxWidthPercent}
+							onChange={(event) => onHeroMaxWidthPercentChange(Number(event.target.value))}
+							className="w-full accent-primary"
+						/>
+					</div>
 				</div>
 
 				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
@@ -378,6 +544,7 @@ export default function ZoomParallaxDemo({
 							Wrap layout with Lenis provider
 						</li>
 					</ul>
+				</div>
 				</div>
 			</div>
 		</div>
