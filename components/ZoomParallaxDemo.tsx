@@ -29,6 +29,9 @@ function hexInputValue(hex: string): string {
 interface ZoomParallaxDemoProps {
 	scrollLengthMultiplier: number;
 	onScrollLengthMultiplierChange: (value: number) => void;
+	/** Extra scroll in vh after collage settles, before hero lock */
+	collagePauseVh: number;
+	onCollagePauseVhChange: (value: number) => void;
 	introHeightVh: number;
 	onIntroHeightVhChange: (value: number) => void;
 	heroFontFamily: string;
@@ -58,6 +61,8 @@ interface ZoomParallaxDemoProps {
 export default function ZoomParallaxDemo({
 	scrollLengthMultiplier,
 	onScrollLengthMultiplierChange,
+	collagePauseVh,
+	onCollagePauseVhChange,
 	introHeightVh,
 	onIntroHeightVhChange,
 	heroFontFamily,
@@ -285,6 +290,7 @@ export default function ZoomParallaxDemo({
 							images={images}
 							containerRef={previewScrollRef as React.RefObject<HTMLElement | null>}
 							scrollLengthMultiplier={scrollLengthMultiplier}
+							collagePauseVh={collagePauseVh}
 							embeddedPreviewMode={!isFullscreen}
 							viewportHeightPx={previewViewportHeight}
 							embeddedSceneScale={embeddedSceneScale}
@@ -347,6 +353,27 @@ export default function ZoomParallaxDemo({
 					/>
 					<p className="mt-2 text-xs text-muted-foreground">
 						Lower ends the full parallax sequence sooner. Higher extends it.
+					</p>
+				</div>
+
+				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
+					<div className="mb-2 flex items-center justify-between">
+						<h3 className="text-sm font-semibold text-primary">Pause after collage</h3>
+						<span className="font-mono text-xs text-muted-foreground">
+							{Math.round(collagePauseVh)}vh
+						</span>
+					</div>
+					<input
+						type="range"
+						min={0}
+						max={120}
+						step={5}
+						value={collagePauseVh}
+						onChange={(event) => onCollagePauseVhChange(Number(event.target.value))}
+						className="w-full accent-primary"
+					/>
+					<p className="mt-2 text-xs text-muted-foreground">
+						Extra scroll right when this block fills the viewport: the collage stays in its starting layout, then the spread runs, then the hero-lock zoom.
 					</p>
 				</div>
 

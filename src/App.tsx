@@ -18,6 +18,9 @@ const SETTINGS_STORAGE_KEY = 'zoom-parallax-demo-settings-v2';
 
 interface PersistedSettings {
   scrollLengthMultiplier?: number;
+  collagePauseVh?: number;
+  /** @deprecated migrated once to collagePauseVh */
+  collageHoldSpan?: number;
   introHeightVh?: number;
   heroFontFamily?: string;
   heroFontSizePx?: number;
@@ -88,6 +91,7 @@ const DEFAULT_IMAGES: DemoImage[] = [
 
 export default function App() {
   const [scrollLengthMultiplier, setScrollLengthMultiplier] = useState(3);
+  const [collagePauseVh, setCollagePauseVh] = useState(60);
   const [introHeightVh, setIntroHeightVh] = useState(50);
   const [heroFontFamily, setHeroFontFamily] = useState('inherit');
   const [heroFontSizePx, setHeroFontSizePx] = useState(48);
@@ -112,6 +116,12 @@ export default function App() {
 
       if (typeof parsed.scrollLengthMultiplier === 'number') {
         setScrollLengthMultiplier(parsed.scrollLengthMultiplier);
+      }
+      if (typeof parsed.collagePauseVh === 'number') {
+        setCollagePauseVh(Math.min(200, Math.max(0, parsed.collagePauseVh)));
+      } else if (typeof parsed.collageHoldSpan === 'number') {
+        const legacy = parsed.collageHoldSpan;
+        setCollagePauseVh(Math.min(200, Math.max(0, Math.round(legacy * 280))));
       }
       if (typeof parsed.introHeightVh === 'number') {
         setIntroHeightVh(parsed.introHeightVh);
@@ -177,6 +187,7 @@ export default function App() {
     if (!hasHydratedSettings) return;
     const settingsToPersist: PersistedSettings = {
       scrollLengthMultiplier,
+      collagePauseVh,
       introHeightVh,
       heroFontFamily,
       heroFontSizePx,
@@ -194,6 +205,7 @@ export default function App() {
   }, [
     hasHydratedSettings,
     scrollLengthMultiplier,
+    collagePauseVh,
     introHeightVh,
     heroFontFamily,
     heroFontSizePx,
@@ -211,6 +223,7 @@ export default function App() {
   const handleSaveAndRefresh = () => {
     const settingsToPersist: PersistedSettings = {
       scrollLengthMultiplier,
+      collagePauseVh,
       introHeightVh,
       heroFontFamily,
       heroFontSizePx,
@@ -230,6 +243,7 @@ export default function App() {
 
   const handleCopy = async () => {
     const calibratedScrollLength = Number(scrollLengthMultiplier.toFixed(2));
+    const calibratedCollagePauseVh = Math.round(collagePauseVh);
     const calibratedIntroHeight = Math.round(introHeightVh);
     const calibratedHeroFontSize = Math.round(heroFontSizePx);
     const calibratedHeroOffsetX = Math.round(heroOffsetXPx);
@@ -377,6 +391,7 @@ export default function Page() {
         images={images}
         containerRef={scrollRef}
         scrollLengthMultiplier={${calibratedScrollLength}}
+        collagePauseVh={${calibratedCollagePauseVh}}
         imageBorderRadiusPx={${calibratedImageRadius}}
         backgroundClassName={backgroundClassName}
         backgroundStyle={backgroundStyle}
@@ -487,6 +502,8 @@ export default function Page() {
           <ZoomParallaxDemo
             scrollLengthMultiplier={scrollLengthMultiplier}
             onScrollLengthMultiplierChange={setScrollLengthMultiplier}
+            collagePauseVh={collagePauseVh}
+            onCollagePauseVhChange={setCollagePauseVh}
             introHeightVh={introHeightVh}
             onIntroHeightVhChange={setIntroHeightVh}
             heroFontFamily={heroFontFamily}

@@ -29,12 +29,17 @@ interface ZoomParallaxProps {
 	backgroundStyle?: React.CSSProperties;
 	/** Optional background layer rendered behind the collage */
 	backgroundLayer?: React.ReactNode;
-	/** Progress where collage phase ends and hero-lock begins */
+	/** Scroll progress (0–1) when the collage spread finishes for all images */
 	collageEndProgress?: number;
-	/** Progress where hero-lock phase fully completes */
+	/** Scroll progress (0–1) when the hero-lock phase finishes */
 	lockEndProgress?: number;
 	/** Additional scale boost for center image during hero-lock */
 	heroFocusBoost?: number;
+	/**
+	 * Extra scroll in **vh** right as this block fills the viewport: motion stays at the
+	 * initial collage (before the spread), then the spread runs, then the hero-lock zoom.
+	 */
+	collagePauseVh?: number;
 }
 
 export function ZoomParallax({
@@ -51,6 +56,7 @@ export function ZoomParallax({
 	collageEndProgress = 0.72,
 	lockEndProgress = 0.9,
 	heroFocusBoost = 0.06,
+	collagePauseVh = 0,
 }: ZoomParallaxProps) {
 	const container = useRef<HTMLDivElement>(null);
 	const { scrollYProgress } = useScroll({
@@ -58,22 +64,46 @@ export function ZoomParallax({
 		offset: ['start start', 'end end'],
 		container: containerRef,
 	});
-	const safeCollageEndProgress = Math.min(0.95, Math.max(0.3, collageEndProgress));
-	const safeLockEndProgress = Math.min(1, Math.max(safeCollageEndProgress + 0.02, lockEndProgress));
+	const safeCollageEnd = Math.min(0.95, Math.max(0.3, collageEndProgress));
+	const safeLockEnd = Math.min(1, Math.max(safeCollageEnd + 0.02, lockEndProgress));
 	const safeHeroFocusBoost = Math.max(0, heroFocusBoost);
+	const pauseVh = Math.min(200, Math.max(0, collagePauseVh));
 
-	// Phase 1: full collage motion (0 -> collageEndProgress)
-	const collageProgress = useTransform(
-		scrollYProgress,
-		[0, safeCollageEndProgress],
-		[0, 1],
-	);
-	// Phase 2: lock transition (collageEndProgress -> lockEndProgress)
-	const lockProgress = useTransform(
-		scrollYProgress,
-		[safeCollageEndProgress, safeLockEndProgress],
-		[0, 1],
-	);
+	const safeScrollLengthMultiplier = Math.max(1, scrollLengthMultiplier);
+	const embeddedViewport = Math.max(320, viewportHeightPx ?? 0);
+
+	/** Fullscreen track height is M*100 vh; preview uses M * viewportHeight px */
+	const trackVhNum = safeScrollLengthMultiplier * 100;
+	const totalVhNum = trackVhNum + pauseVh;
+	const trackPx = safeScrollLengthMultiplier * embeddedViewport;
+	const pausePx = (pauseVh / 100) * embeddedViewport;
+	const totalPx = trackPx + pausePx;
+
+	/** End of entry pause (collage still at t=0) */
+	const pPauseEnd = embeddedPreviewMode ? pausePx / totalPx : pauseVh / totalVhNum;
+	/** Collage spread completes */
+	const pCollageEnd = embeddedPreviewMode
+		? (pausePx + safeCollageEnd * trackPx) / totalPx
+		: (pauseVh + safeCollageEnd * trackVhNum) / totalVhNum;
+	/** Hero lock completes */
+	const pLockEnd = embeddedPreviewMode
+		? (pausePx + safeLockEnd * trackPx) / totalPx
+		: (pauseVh + safeLockEnd * trackVhNum) / totalVhNum;
+
+	const collageProgress = useTransform(scrollYProgress, (p) => {
+		if (p <= pPauseEnd) return 0;
+		const span = pCollageEnd - pPauseEnd;
+		if (span <= 1e-9) return 1;
+		if (p >= pCollageEnd) return 1;
+		return (p - pPauseEnd) / span;
+	});
+	const lockProgress = useTransform(scrollYProgress, (p) => {
+		if (p <= pCollageEnd) return 0;
+		const span = pLockEnd - pCollageEnd;
+		if (span <= 1e-9) return 1;
+		if (p >= pLockEnd) return 1;
+		return (p - pCollageEnd) / span;
+	});
 
 	const scale4 = useTransform(collageProgress, [0, 1], [1, 4]);
 	const scale5 = useTransform(collageProgress, [0, 1], [1, 5]);
@@ -89,11 +119,9 @@ export function ZoomParallax({
 	const peripheralOpacity = useTransform(lockProgress, [0, 0.6, 1], [1, 0.45, 0]);
 
 	const scales = [scale4, scale5, scale6, scale5, scale6, scale8, scale9];
-	const safeScrollLengthMultiplier = Math.max(1, scrollLengthMultiplier);
-	const embeddedViewport = Math.max(320, viewportHeightPx ?? 0);
 	const containerStyle = embeddedPreviewMode
-		? { height: `${safeScrollLengthMultiplier * embeddedViewport}px` }
-		: { height: `${safeScrollLengthMultiplier * 100}vh` };
+		? { height: `${totalPx}px` }
+		: { height: `${totalVhNum}vh` };
 	const stickyStyle = embeddedPreviewMode ? { height: `${embeddedViewport}px` } : undefined;
 	const safeEmbeddedSceneScale = Math.min(1, Math.max(0.2, embeddedSceneScale));
 	const safeImageBorderRadiusPx = Math.max(0, imageBorderRadiusPx);
