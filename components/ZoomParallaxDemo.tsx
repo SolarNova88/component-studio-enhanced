@@ -3,16 +3,28 @@ import React from 'react';
 import Lenis from '@studio-freight/lenis'
 import { ZoomParallax } from "@/components/ui/zoom-parallax";
 import { cn } from '@/lib/utils';
+import {
+	BLOB_LAYER_OPACITY,
+	DEFAULT_BACKGROUND_COLORS,
+	resolveParallaxBackground,
+	resetColorsForVariant,
+	type BackgroundColors,
+	type BackgroundVariant,
+} from '@/lib/background-presets';
 
-export type BackgroundVariant =
-	| 'solid-dark'
-	| 'solid-indigo'
-	| 'gradient-sunset'
-	| 'gradient-ocean'
-	| 'image-forest'
-	| 'blob-animated';
+export type { BackgroundColors, BackgroundVariant } from '@/lib/background-presets';
 
 export type HeroTextAlign = 'left' | 'center' | 'right';
+export interface DemoImage {
+	src: string;
+	alt?: string;
+}
+
+function hexInputValue(hex: string): string {
+	if (/^#[0-9A-Fa-f]{6}$/.test(hex)) return hex;
+	if (/^#[0-9A-Fa-f]{3}$/.test(hex)) return hex;
+	return '#000000';
+}
 
 interface ZoomParallaxDemoProps {
 	scrollLengthMultiplier: number;
@@ -33,10 +45,14 @@ interface ZoomParallaxDemoProps {
 	onHeroOffsetYPxChange: (value: number) => void;
 	heroMaxWidthPercent: number;
 	onHeroMaxWidthPercentChange: (value: number) => void;
+	images: DemoImage[];
+	onImagesChange: (value: DemoImage[]) => void;
 	imageBorderRadiusPx: number;
 	onImageBorderRadiusPxChange: (value: number) => void;
 	backgroundVariant: BackgroundVariant;
 	onBackgroundVariantChange: (value: BackgroundVariant) => void;
+	backgroundColors: BackgroundColors;
+	onBackgroundColorsChange: (value: BackgroundColors) => void;
 }
 
 export default function ZoomParallaxDemo({
@@ -58,10 +74,14 @@ export default function ZoomParallaxDemo({
 	onHeroOffsetYPxChange,
 	heroMaxWidthPercent,
 	onHeroMaxWidthPercentChange,
+	images,
+	onImagesChange,
 	imageBorderRadiusPx,
 	onImageBorderRadiusPxChange,
 	backgroundVariant,
 	onBackgroundVariantChange,
+	backgroundColors,
+	onBackgroundColorsChange,
 }: ZoomParallaxDemoProps) {
 	const previewScrollRef = React.useRef<HTMLDivElement>(null);
 	const lenisRef = React.useRef<Lenis | null>(null);
@@ -154,57 +174,41 @@ export default function ZoomParallaxDemo({
 	};
 
 	const backgroundConfig = React.useMemo(() => {
-		switch (backgroundVariant) {
-			case 'solid-indigo':
-				return {
-					className: 'bg-indigo-950',
-					style: undefined,
-					layer: null,
-				};
-			case 'gradient-sunset':
-				return {
-					className: 'bg-[radial-gradient(circle_at_top,#fb7185_0%,#7c3aed_45%,#020617_100%)]',
-					style: undefined,
-					layer: null,
-				};
-			case 'gradient-ocean':
-				return {
-					className: 'bg-[linear-gradient(135deg,#082f49_0%,#0f766e_40%,#164e63_100%)]',
-					style: undefined,
-					layer: null,
-				};
-			case 'image-forest':
-				return {
-					className: 'bg-cover bg-center',
-					style: {
-						backgroundImage:
-							"url('https://images.unsplash.com/photo-1511497584788-876760111969?w=1920&h=1080&fit=crop&auto=format&q=80')",
-					} as React.CSSProperties,
-					layer: (
-						<div className="absolute inset-0 bg-black/35" />
-					),
-				};
-			case 'blob-animated':
-				return {
-					className: 'bg-[#070b17]',
-					style: undefined,
-					layer: (
-						<>
-							<div className="absolute -top-28 -left-20 h-72 w-72 rounded-full bg-fuchsia-500/35 blur-3xl animate-pulse" />
-							<div className="absolute top-1/3 -right-16 h-80 w-80 rounded-full bg-cyan-400/30 blur-3xl animate-pulse [animation-delay:400ms]" />
-							<div className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl animate-pulse [animation-delay:800ms]" />
-						</>
-					),
-				};
-			case 'solid-dark':
-			default:
-				return {
-					className: 'bg-black',
-					style: undefined,
-					layer: null,
-				};
+		const resolved = resolveParallaxBackground(backgroundVariant, backgroundColors);
+		let layer: React.ReactNode = null;
+		if (resolved.forestOverlayColor) {
+			layer = (
+				<div
+					className="absolute inset-0"
+					style={{ backgroundColor: resolved.forestOverlayColor }}
+				/>
+			);
+		} else if (resolved.blob) {
+			const { b1, b2, b3 } = resolved.blob;
+			const [o1, o2, o3] = BLOB_LAYER_OPACITY;
+			layer = (
+				<>
+					<div
+						className="absolute -top-28 -left-20 h-72 w-72 rounded-full blur-3xl animate-pulse"
+						style={{ backgroundColor: b1, opacity: o1 }}
+					/>
+					<div
+						className="absolute top-1/3 -right-16 h-80 w-80 rounded-full blur-3xl animate-pulse [animation-delay:400ms]"
+						style={{ backgroundColor: b2, opacity: o2 }}
+					/>
+					<div
+						className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full blur-3xl animate-pulse [animation-delay:800ms]"
+						style={{ backgroundColor: b3, opacity: o3 }}
+					/>
+				</>
+			);
 		}
-	}, [backgroundVariant]);
+		return {
+			className: resolved.className,
+			style: resolved.style,
+			layer,
+		};
+	}, [backgroundVariant, backgroundColors]);
 
 	React.useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -218,36 +222,25 @@ export default function ZoomParallaxDemo({
 	}, []);
 
 
-	const images = [
-		{
-			src: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Modern architecture building',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Urban cityscape at sunset',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=800&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Abstract geometric pattern',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Mountain landscape',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=800&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Minimalist design elements',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Ocean waves and beach',
-		},
-		{
-			src: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
-			alt: 'Forest trees and sunlight',
-		},
-	];
+	const updateImageAt = (index: number, patch: Partial<DemoImage>) => {
+		const next = [...images];
+		const current = next[index] ?? { src: '', alt: '' };
+		next[index] = { ...current, ...patch };
+		onImagesChange(next);
+	};
+
+	const handleImageFileChange = (index: number, file: File | null) => {
+		if (!file) return;
+		const objectUrl = URL.createObjectURL(file);
+		const previous = images[index]?.src;
+		if (previous?.startsWith('blob:')) {
+			URL.revokeObjectURL(previous);
+		}
+		updateImageAt(index, {
+			src: objectUrl,
+			alt: images[index]?.alt || file.name || `Image ${index + 1}`,
+		});
+	};
 
 	return (
 		<div className="grid h-full min-h-0 min-w-0 grid-cols-1 gap-6 overflow-hidden p-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:p-8">
@@ -519,9 +512,267 @@ export default function ZoomParallaxDemo({
 						<option value="image-forest">Image / Forest + Overlay</option>
 						<option value="blob-animated">Animated / Blobs</option>
 					</select>
-					<p className="mt-2 text-xs text-muted-foreground">
+									<p className="mt-2 text-xs text-muted-foreground">
 						Copied bundle includes this exact background configuration.
 					</p>
+				</div>
+
+				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
+					<h3 className="mb-3 text-sm font-semibold text-primary">Image Sources</h3>
+					<div className="flex flex-col gap-3">
+						{images.map((image, index) => (
+							<div key={`image-source-${index}`} className="rounded-md border border-border bg-black/20 p-3">
+								<div className="mb-2 text-xs font-semibold text-foreground">Image {index + 1}</div>
+								<label className="mb-1 block text-[11px] text-muted-foreground">URL</label>
+								<input
+									type="text"
+									value={image.src}
+									onChange={(event) => updateImageAt(index, { src: event.target.value })}
+									placeholder="https://example.com/image.jpg"
+									className="mb-2 w-full rounded border border-border bg-black/40 px-2 py-1.5 text-xs outline-none ring-primary/50 transition focus:ring-2"
+								/>
+								<label className="mb-1 block text-[11px] text-muted-foreground">Alt text</label>
+								<input
+									type="text"
+									value={image.alt ?? ''}
+									onChange={(event) => updateImageAt(index, { alt: event.target.value })}
+									placeholder={`Image ${index + 1}`}
+									className="mb-2 w-full rounded border border-border bg-black/40 px-2 py-1.5 text-xs outline-none ring-primary/50 transition focus:ring-2"
+								/>
+								<label className="mb-1 block text-[11px] text-muted-foreground">Local file</label>
+								<input
+									type="file"
+									accept="image/*"
+									onChange={(event) => handleImageFileChange(index, event.target.files?.[0] ?? null)}
+									className="w-full text-[11px] text-muted-foreground file:mr-2 file:rounded file:border file:border-border file:bg-black/40 file:px-2 file:py-1 file:text-[11px] file:text-foreground"
+								/>
+							</div>
+						))}
+					</div>
+					<p className="mt-2 text-xs text-muted-foreground">
+						Local files use browser object URLs in preview. For export, use hosted URLs.
+					</p>
+				</div>
+
+				<div className="rounded-xl border border-border bg-white/[0.03] p-5">
+					<div className="mb-3 flex items-center justify-between gap-2">
+						<h3 className="text-sm font-semibold text-primary">Background colors</h3>
+						<button
+							type="button"
+							onClick={() =>
+								onBackgroundColorsChange({
+									...backgroundColors,
+									...resetColorsForVariant(backgroundVariant, DEFAULT_BACKGROUND_COLORS),
+								})
+							}
+							className="shrink-0 rounded-md border border-border bg-black/40 px-2 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+						>
+							Reset this preset
+						</button>
+					</div>
+					<p className="mb-3 text-xs text-muted-foreground">
+						Presets stay the same until you change colors. Export copies your current values.
+					</p>
+
+					{backgroundVariant === 'solid-dark' && (
+						<div className="flex items-center gap-2">
+							<label className="w-20 shrink-0 text-xs text-muted-foreground">Fill</label>
+							<input
+								type="color"
+								value={hexInputValue(backgroundColors.solidDark)}
+								onChange={(e) =>
+									onBackgroundColorsChange({ ...backgroundColors, solidDark: e.target.value })
+								}
+								className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+							/>
+							<input
+								type="text"
+								value={backgroundColors.solidDark}
+								onChange={(e) =>
+									onBackgroundColorsChange({ ...backgroundColors, solidDark: e.target.value })
+								}
+								className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+							/>
+						</div>
+					)}
+
+					{backgroundVariant === 'solid-indigo' && (
+						<div className="flex items-center gap-2">
+							<label className="w-20 shrink-0 text-xs text-muted-foreground">Fill</label>
+							<input
+								type="color"
+								value={hexInputValue(backgroundColors.solidIndigo)}
+								onChange={(e) =>
+									onBackgroundColorsChange({ ...backgroundColors, solidIndigo: e.target.value })
+								}
+								className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+							/>
+							<input
+								type="text"
+								value={backgroundColors.solidIndigo}
+								onChange={(e) =>
+									onBackgroundColorsChange({ ...backgroundColors, solidIndigo: e.target.value })
+								}
+								className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+							/>
+						</div>
+					)}
+
+					{backgroundVariant === 'gradient-sunset' && (
+						<div className="flex flex-col gap-2">
+							{(['Top', 'Mid', 'Bottom'] as const).map((label, i) => (
+								<div key={label} className="flex items-center gap-2">
+									<label className="w-20 shrink-0 text-xs text-muted-foreground">{label}</label>
+									<input
+										type="color"
+										value={hexInputValue(backgroundColors.sunset[i])}
+										onChange={(e) => {
+											const next = [...backgroundColors.sunset] as [string, string, string];
+											next[i] = e.target.value;
+											onBackgroundColorsChange({ ...backgroundColors, sunset: next });
+										}}
+										className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+									/>
+									<input
+										type="text"
+										value={backgroundColors.sunset[i]}
+										onChange={(e) => {
+											const next = [...backgroundColors.sunset] as [string, string, string];
+											next[i] = e.target.value;
+											onBackgroundColorsChange({ ...backgroundColors, sunset: next });
+										}}
+										className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+									/>
+								</div>
+							))}
+						</div>
+					)}
+
+					{backgroundVariant === 'gradient-ocean' && (
+						<div className="flex flex-col gap-2">
+							{(['Start', 'Mid', 'End'] as const).map((label, i) => (
+								<div key={label} className="flex items-center gap-2">
+									<label className="w-20 shrink-0 text-xs text-muted-foreground">{label}</label>
+									<input
+										type="color"
+										value={hexInputValue(backgroundColors.ocean[i])}
+										onChange={(e) => {
+											const next = [...backgroundColors.ocean] as [string, string, string];
+											next[i] = e.target.value;
+											onBackgroundColorsChange({ ...backgroundColors, ocean: next });
+										}}
+										className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+									/>
+									<input
+										type="text"
+										value={backgroundColors.ocean[i]}
+										onChange={(e) => {
+											const next = [...backgroundColors.ocean] as [string, string, string];
+											next[i] = e.target.value;
+											onBackgroundColorsChange({ ...backgroundColors, ocean: next });
+										}}
+										className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+									/>
+								</div>
+							))}
+						</div>
+					)}
+
+					{backgroundVariant === 'image-forest' && (
+						<div className="flex flex-col gap-3">
+							<div className="flex items-center gap-2">
+								<label className="w-20 shrink-0 text-xs text-muted-foreground">Tint</label>
+								<input
+									type="color"
+									value={hexInputValue(backgroundColors.forestTint)}
+									onChange={(e) =>
+										onBackgroundColorsChange({ ...backgroundColors, forestTint: e.target.value })
+									}
+									className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+								/>
+								<input
+									type="text"
+									value={backgroundColors.forestTint}
+									onChange={(e) =>
+										onBackgroundColorsChange({ ...backgroundColors, forestTint: e.target.value })
+									}
+									className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+								/>
+							</div>
+							<div>
+								<div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+									<span>Overlay strength</span>
+									<span className="font-mono">{Math.round(backgroundColors.forestTintAlpha)}%</span>
+								</div>
+								<input
+									type="range"
+									min={0}
+									max={100}
+									step={1}
+									value={backgroundColors.forestTintAlpha}
+									onChange={(e) =>
+										onBackgroundColorsChange({
+											...backgroundColors,
+											forestTintAlpha: Number(e.target.value),
+										})
+									}
+									className="w-full accent-primary"
+								/>
+							</div>
+						</div>
+					)}
+
+					{backgroundVariant === 'blob-animated' && (
+						<div className="flex flex-col gap-2">
+							<div className="flex items-center gap-2">
+								<label className="w-20 shrink-0 text-xs text-muted-foreground">Base</label>
+								<input
+									type="color"
+									value={hexInputValue(backgroundColors.blobBase)}
+									onChange={(e) =>
+										onBackgroundColorsChange({ ...backgroundColors, blobBase: e.target.value })
+									}
+									className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+								/>
+								<input
+									type="text"
+									value={backgroundColors.blobBase}
+									onChange={(e) =>
+										onBackgroundColorsChange({ ...backgroundColors, blobBase: e.target.value })
+									}
+									className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+								/>
+							</div>
+							{(['Blob 1', 'Blob 2', 'Blob 3'] as const).map((label, i) => {
+								const key = ['blob1', 'blob2', 'blob3'][i] as 'blob1' | 'blob2' | 'blob3';
+								const val = backgroundColors[key];
+								return (
+									<div key={label} className="flex items-center gap-2">
+										<label className="w-20 shrink-0 text-xs text-muted-foreground">{label}</label>
+										<input
+											type="color"
+											value={hexInputValue(val)}
+											onChange={(e) =>
+												onBackgroundColorsChange({ ...backgroundColors, [key]: e.target.value })
+											}
+											className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent"
+										/>
+										<input
+											type="text"
+											value={val}
+											onChange={(e) =>
+												onBackgroundColorsChange({ ...backgroundColors, [key]: e.target.value })
+											}
+											className="min-w-0 flex-1 rounded border border-border bg-black/40 px-2 py-1.5 font-mono text-xs"
+										/>
+									</div>
+								);
+							})}
+							<p className="text-[11px] text-muted-foreground">
+								Layer opacity matches the original preset (35% / 30% / 20%).
+							</p>
+						</div>
+					)}
 				</div>
 
 				<div className="rounded-xl border border-border bg-transparent p-5">

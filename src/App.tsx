@@ -3,12 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import ZoomParallaxDemo, { type BackgroundVariant, type HeroTextAlign } from '@/components/ZoomParallaxDemo';
+import ZoomParallaxDemo, { type DemoImage, type HeroTextAlign } from '@/components/ZoomParallaxDemo';
+import {
+  DEFAULT_BACKGROUND_COLORS,
+  serializeBackgroundForExport,
+  type BackgroundColors,
+  type BackgroundVariant,
+} from '@/lib/background-presets';
 import { Layout, Folder, File, ChevronDown, ChevronRight, Square, Box } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 
-const SETTINGS_STORAGE_KEY = 'zoom-parallax-demo-settings-v1';
+const SETTINGS_STORAGE_KEY = 'zoom-parallax-demo-settings-v2';
 
 interface PersistedSettings {
   scrollLengthMultiplier?: number;
@@ -22,51 +28,63 @@ interface PersistedSettings {
   heroMaxWidthPercent?: number;
   imageBorderRadiusPx?: number;
   backgroundVariant?: BackgroundVariant;
+  backgroundColors?: BackgroundColors;
+  images?: DemoImage[];
 }
 
-function getBackgroundSnippet(variant: BackgroundVariant) {
-  switch (variant) {
-    case 'solid-indigo':
-      return {
-        classNameLiteral: "'bg-indigo-950'",
-        styleLiteral: 'undefined',
-        layerLiteral: 'undefined',
-      };
-    case 'gradient-sunset':
-      return {
-        classNameLiteral: "'bg-[radial-gradient(circle_at_top,#fb7185_0%,#7c3aed_45%,#020617_100%)]'",
-        styleLiteral: 'undefined',
-        layerLiteral: 'undefined',
-      };
-    case 'gradient-ocean':
-      return {
-        classNameLiteral: "'bg-[linear-gradient(135deg,#082f49_0%,#0f766e_40%,#164e63_100%)]'",
-        styleLiteral: 'undefined',
-        layerLiteral: 'undefined',
-      };
-    case 'image-forest':
-      return {
-        classNameLiteral: "'bg-cover bg-center'",
-        styleLiteral:
-          "{ backgroundImage: \"url('https://images.unsplash.com/photo-1511497584788-876760111969?w=1920&h=1080&fit=crop&auto=format&q=80')\" }",
-        layerLiteral: "<div className=\"absolute inset-0 bg-black/35\" />",
-      };
-    case 'blob-animated':
-      return {
-        classNameLiteral: "'bg-[#070b17]'",
-        styleLiteral: 'undefined',
-        layerLiteral:
-          "<><div className=\"absolute -top-28 -left-20 h-72 w-72 rounded-full bg-fuchsia-500/35 blur-3xl animate-pulse\" /><div className=\"absolute top-1/3 -right-16 h-80 w-80 rounded-full bg-cyan-400/30 blur-3xl animate-pulse [animation-delay:400ms]\" /><div className=\"absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl animate-pulse [animation-delay:800ms]\" /></>",
-      };
-    case 'solid-dark':
-    default:
-      return {
-        classNameLiteral: "'bg-black'",
-        styleLiteral: 'undefined',
-        layerLiteral: 'undefined',
-      };
-  }
+function mergeBackgroundColors(raw: unknown): BackgroundColors {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_BACKGROUND_COLORS };
+  const p = raw as Partial<BackgroundColors>;
+  const sunset =
+    Array.isArray(p.sunset) && p.sunset.length === 3
+      ? ([p.sunset[0], p.sunset[1], p.sunset[2]] as [string, string, string])
+      : DEFAULT_BACKGROUND_COLORS.sunset;
+  const ocean =
+    Array.isArray(p.ocean) && p.ocean.length === 3
+      ? ([p.ocean[0], p.ocean[1], p.ocean[2]] as [string, string, string])
+      : DEFAULT_BACKGROUND_COLORS.ocean;
+  return {
+    ...DEFAULT_BACKGROUND_COLORS,
+    ...p,
+    sunset,
+    ocean,
+    forestTintAlpha:
+      typeof p.forestTintAlpha === 'number'
+        ? Math.min(100, Math.max(0, p.forestTintAlpha))
+        : DEFAULT_BACKGROUND_COLORS.forestTintAlpha,
+  };
 }
+
+const DEFAULT_IMAGES: DemoImage[] = [
+  {
+    src: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Modern architecture building',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Urban cityscape at sunset',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=800&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Abstract geometric pattern',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Mountain landscape',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=800&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Minimalist design elements',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Ocean waves and beach',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80',
+    alt: 'Forest trees and sunlight',
+  },
+];
 
 export default function App() {
   const [scrollLengthMultiplier, setScrollLengthMultiplier] = useState(3);
@@ -80,6 +98,10 @@ export default function App() {
   const [heroMaxWidthPercent, setHeroMaxWidthPercent] = useState(100);
   const [imageBorderRadiusPx, setImageBorderRadiusPx] = useState(8);
   const [backgroundVariant, setBackgroundVariant] = useState<BackgroundVariant>('solid-dark');
+  const [backgroundColors, setBackgroundColors] = useState<BackgroundColors>(() => ({
+    ...DEFAULT_BACKGROUND_COLORS,
+  }));
+  const [images, setImages] = useState<DemoImage[]>(() => [...DEFAULT_IMAGES]);
   const [hasHydratedSettings, setHasHydratedSettings] = useState(false);
 
   useEffect(() => {
@@ -127,6 +149,23 @@ export default function App() {
       ) {
         setBackgroundVariant(parsed.backgroundVariant);
       }
+      if (parsed.backgroundColors) {
+        setBackgroundColors(mergeBackgroundColors(parsed.backgroundColors));
+      }
+      if (Array.isArray(parsed.images)) {
+        const cleaned = parsed.images
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const src = typeof (item as DemoImage).src === 'string' ? (item as DemoImage).src : '';
+            const alt = typeof (item as DemoImage).alt === 'string' ? (item as DemoImage).alt : '';
+            return src ? { src, alt } : null;
+          })
+          .filter((item): item is { src: string; alt: string } => item !== null)
+          .slice(0, 7);
+        if (cleaned.length > 0) {
+          setImages(cleaned.length === 7 ? cleaned : [...cleaned, ...DEFAULT_IMAGES.slice(cleaned.length)]);
+        }
+      }
     } catch {
       // Ignore invalid localStorage payloads and continue with defaults.
     } finally {
@@ -148,6 +187,8 @@ export default function App() {
       heroMaxWidthPercent,
       imageBorderRadiusPx,
       backgroundVariant,
+      backgroundColors,
+      images,
     };
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsToPersist));
   }, [
@@ -163,6 +204,8 @@ export default function App() {
     heroMaxWidthPercent,
     imageBorderRadiusPx,
     backgroundVariant,
+    backgroundColors,
+    images,
   ]);
 
   const handleSaveAndRefresh = () => {
@@ -178,6 +221,8 @@ export default function App() {
       heroMaxWidthPercent,
       imageBorderRadiusPx,
       backgroundVariant,
+      backgroundColors,
+      images,
     };
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsToPersist));
     window.location.reload();
@@ -191,7 +236,11 @@ export default function App() {
     const calibratedHeroOffsetY = Math.round(heroOffsetYPx);
     const calibratedHeroMaxWidth = Math.round(heroMaxWidthPercent);
     const calibratedImageRadius = Math.round(imageBorderRadiusPx);
-    const backgroundSnippet = getBackgroundSnippet(backgroundVariant);
+    const backgroundSnippet = serializeBackgroundForExport(backgroundVariant, backgroundColors);
+    const exportImages = images.map((img, index) => ({
+      src: img.src,
+      alt: img.alt || `Parallax image ${index + 1}`,
+    }));
     const integrationBundle = `# Zoom Parallax Integration Bundle
 
 ## 1) Install dependencies
@@ -290,7 +339,7 @@ import { ZoomParallax } from '@/components/ui/zoom-parallax';
 export default function Page() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const backgroundClassName = ${backgroundSnippet.classNameLiteral};
-  const backgroundStyle = ${backgroundSnippet.styleLiteral};
+  const backgroundStyle: import('react').CSSProperties | undefined = ${backgroundSnippet.styleLiteral};
   const backgroundLayer = ${backgroundSnippet.layerLiteral};
   const heroTextStyle = {
     fontFamily: ${JSON.stringify(heroFontFamily)},
@@ -310,11 +359,7 @@ export default function Page() {
     paddingRight: '1.5rem',
     transform: 'translate(calc(-50% + ${calibratedHeroOffsetX}px), calc(-50% + ${calibratedHeroOffsetY}px))',
   };
-  const images = [
-    { src: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80', alt: 'Architecture' },
-    { src: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1280&h=720&fit=crop&crop=entropy&auto=format&q=80', alt: 'Cityscape' },
-    { src: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=800&fit=crop&crop=entropy&auto=format&q=80', alt: 'Pattern' },
-  ];
+  const images = ${JSON.stringify(exportImages, null, 2)};
 
   return (
     <div ref={scrollRef} className="h-screen overflow-y-auto">
@@ -462,6 +507,10 @@ export default function Page() {
             onImageBorderRadiusPxChange={setImageBorderRadiusPx}
             backgroundVariant={backgroundVariant}
             onBackgroundVariantChange={setBackgroundVariant}
+            backgroundColors={backgroundColors}
+            onBackgroundColorsChange={setBackgroundColors}
+            images={images}
+            onImagesChange={setImages}
           />
         </div>
       </main>
