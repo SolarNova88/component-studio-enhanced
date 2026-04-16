@@ -112,3 +112,163 @@
     @apply font-sans;
     }
 }
+
+/* Hero headline creative presets (see lib/hero-style-presets.ts) */
+@layer components {
+  .hero-creative-aurora {
+    width: fit-content;
+    max-width: 100%;
+    background-image: linear-gradient(
+      90deg,
+      var(--hero-user-color, #fff),
+      #c084fc,
+      #38bdf8,
+      #f472b6,
+      var(--hero-user-color, #fff)
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: hero-creative-aurora-shift var(--hero-effect-speed, 10s) linear infinite;
+    filter: saturate(var(--hero-effect-intensity, 1));
+  }
+
+  .hero-creative-sunset-mesh {
+    width: fit-content;
+    max-width: 100%;
+    background-image: linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--hero-sunset-1, #fde68a) calc(100% * var(--hero-sync-sunset, 0)), #fde68a) 0%,
+      color-mix(in srgb, var(--hero-sunset-2, #fb7185) calc(100% * var(--hero-sync-sunset, 0)), #fb7185) 35%,
+      color-mix(in srgb, var(--hero-sunset-3, #a78bfa) calc(100% * var(--hero-sync-sunset, 0)), #a78bfa) 65%,
+      #38bdf8 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: saturate(var(--hero-effect-intensity, 1));
+  }
+
+  .hero-creative-outline-neon {
+    width: fit-content;
+    max-width: 100%;
+    color: transparent;
+    -webkit-text-stroke: calc(1px + (0.8px * var(--hero-effect-intensity, 1))) var(--hero-user-color, #fff);
+    text-shadow:
+      0 0 calc(16px * var(--hero-effect-intensity, 1)) color-mix(in srgb, var(--hero-user-color, #fff) 45%, transparent),
+      0 0 calc(42px * var(--hero-effect-intensity, 1)) color-mix(in srgb, var(--hero-user-color, #fff) 25%, transparent);
+  }
+
+  .hero-creative-soft-glow {
+    text-shadow:
+      0 0 calc(14px * var(--hero-effect-intensity, 1)) color-mix(in srgb, var(--hero-user-color, #fff) 55%, transparent),
+      0 0 calc(42px * var(--hero-effect-intensity, 1)) color-mix(in srgb, var(--hero-user-color, #fff) 30%, transparent);
+  }
+
+  .hero-creative-editorial-tight {
+    letter-spacing: -0.045em;
+    font-weight: 800;
+    line-height: 0.92;
+  }
+
+  .hero-creative-chromatic-split {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+    z-index: 0;
+  }
+
+  .hero-creative-chromatic-split::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    color: color-mix(in srgb, var(--hero-user-color, #fff) 35%, #38bdf8);
+    transform: translate(
+      calc(4px * var(--hero-effect-intensity, 1)),
+      calc(3px * var(--hero-effect-intensity, 1))
+    );
+    pointer-events: none;
+  }
+
+  .hero-creative-noir-fade {
+    width: fit-content;
+    max-width: 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(
+      180deg,
+      var(--hero-user-color, #fff) 0%,
+      color-mix(in srgb, var(--hero-user-color, #fff) 35%, transparent) 72%,
+      transparent 100%
+    );
+  }
+
+  /* Blurred duplicate behind glyphs (uses data-text) */
+  .hero-creative-back-halo {
+    position: relative;
+    isolation: isolate;
+    width: fit-content;
+    max-width: 100%;
+    z-index: 0;
+  }
+
+  .hero-creative-back-halo::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    color: color-mix(in srgb, var(--hero-user-color, #fff) 70%, transparent);
+    filter: blur(calc(6px + 10px * (var(--hero-effect-intensity, 1) - 0.6) / 1.4));
+    transform: scale(calc(1.02 + 0.05 * (var(--hero-effect-intensity, 1) - 0.6) / 1.4));
+    opacity: calc(0.45 + 0.35 * (var(--hero-effect-intensity, 1) - 0.6) / 1.4);
+    pointer-events: none;
+  }
+
+  /* Grain overlay on headline box (not glyph-clipped) */
+  .hero-creative-noise-grain {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .hero-creative-noise-grain::after {
+    content: '';
+    position: absolute;
+    inset: -6%;
+    opacity: calc(0.09 * var(--hero-effect-intensity, 1));
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+  }
+
+  /* Frosted panel: class goes on a wrapper around <h1> */
+  .hero-creative-glass-plate-wrap {
+    width: fit-content;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--hero-user-color, #fff) 22%, transparent);
+    background: color-mix(in srgb, var(--hero-user-color, #fff) 7%, transparent);
+    padding: 1.1rem 1.35rem;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--hero-user-color, #fff) 10%, transparent) inset,
+      0 28px 90px -28px color-mix(in srgb, var(--hero-user-color, #fff) 40%, transparent);
+    backdrop-filter: blur(calc(6px + 16px * (var(--hero-effect-intensity, 1) - 0.6) / 1.4));
+    -webkit-backdrop-filter: blur(calc(6px + 16px * (var(--hero-effect-intensity, 1) - 0.6) / 1.4));
+  }
+}
+
+@keyframes hero-creative-aurora-shift {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-creative-aurora {
+    animation: none;
+    background-position: center;
+  }
+}

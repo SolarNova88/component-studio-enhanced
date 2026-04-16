@@ -8,6 +8,14 @@ export type BackgroundVariant =
 	| 'image-forest'
 	| 'blob-animated';
 
+/** Where the selected preset is painted. */
+export type BackgroundScope =
+	| 'parallax-only'
+	| 'hero-only'
+	| 'split'
+	| 'independent'
+	| 'continuous';
+
 /** Per-variant color slots (presets match original Tailwind-based looks). */
 export interface BackgroundColors {
 	solidDark: string;
